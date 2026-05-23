@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SICP Chapter 1 — Building Abstractions with Procedures</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:     #F7F5EF;
+    --ink:    #161616;
+    --red:    #8B0D10;
+    --muted:  #888070;
+    --border: #D8D4C8;
+    --code-bg:#EDEBE3;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Georgia', serif;
+    overflow: hidden;
+  }
+
+  /* ── deck ── */
+  .deck { width: 100%; height: 100%; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6vw 9vw;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  /* layout variants */
+  .slide.center { align-items: center; text-align: center; }
+  .slide.center p { margin-left: auto; margin-right: auto; }
+
+  .slide.split {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 5vw;
+    padding: 4.5vw 7vw;
+  }
+  .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .col + .col {
+    border-left: 1px solid var(--border);
+    padding-left: 5vw;
+  }
+
+  /* ── type ── */
+  .tag {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(0.58rem, 1vw, 0.75rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 1.8em;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 4.8vw, 3.8rem);
+    font-weight: normal;
+    line-height: 1.14;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.7em;
+  }
+
+  h2 {
+    font-size: clamp(1.3rem, 2.8vw, 2.2rem);
+    font-weight: normal;
+    line-height: 1.22;
+    letter-spacing: -0.015em;
+    margin-bottom: 0.9em;
+  }
+
+  h3 {
+    font-size: clamp(0.88rem, 1.4vw, 1.05rem);
+    font-weight: normal;
+    font-style: italic;
+    color: var(--muted);
+    margin-bottom: 2em;
+  }
+
+  p {
+    font-size: clamp(0.88rem, 1.4vw, 1.05rem);
+    line-height: 1.8;
+    max-width: 64ch;
+    margin-bottom: 0.9em;
+  }
+
+  em { font-style: italic; }
+  strong { font-weight: normal; color: var(--red); }
+
+  ul {
+    list-style: none;
+    margin: 0.6em 0;
+  }
+  ul li {
+    font-size: clamp(0.85rem, 1.35vw, 1rem);
+    line-height: 1.7;
+    padding: 0.4em 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 0.85em;
+    align-items: baseline;
+  }
+  ul li:last-child { border-bottom: none; }
+  ul li::before {
+    content: '—';
+    color: var(--red);
+    flex-shrink: 0;
+    font-size: 0.78em;
+  }
+
+  /* code */
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.87em;
+    background: var(--code-bg);
+    padding: 0.1em 0.35em;
+    border-radius: 2px;
+  }
+  pre {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(0.68rem, 1.1vw, 0.86rem);
+    line-height: 1.7;
+    background: var(--code-bg);
+    padding: 1.4em 1.6em;
+    border-left: 3px solid var(--red);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  pre .c  { color: var(--muted); }
+  pre .kw { color: var(--red); }
+
+  /* blockquote */
+  blockquote {
+    border-left: 3px solid var(--red);
+    padding-left: 1.6em;
+    margin: 1.4em 0;
+  }
+  blockquote p {
+    font-style: italic;
+    font-size: clamp(0.95rem, 1.6vw, 1.22rem);
+    line-height: 1.65;
+    margin-bottom: 0.3em;
+  }
+  blockquote cite {
+    font-style: normal;
+    font-size: clamp(0.65rem, 0.95vw, 0.78rem);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-top: 0.5em;
+  }
+
+  /* big single word / number accent */
+  .accent-word {
+    font-size: clamp(3.5rem, 9vw, 7rem);
+    font-weight: normal;
+    color: var(--red);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    margin-bottom: 0.15em;
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.4em 0; }
+
+  /* ── chrome ── */
+  .slide-num {
+    position: fixed;
+    top: 2.4vh; left: 3vw;
+    font-family: 'Courier New', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    color: var(--border);
+    z-index: 100;
+    text-transform: uppercase;
+  }
+
+  nav {
+    position: fixed;
+    bottom: 2.4vh; right: 3vw;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 100;
+  }
+  .progress {
+    font-family: 'Courier New', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .btn {
+    width: 1.9rem; height: 1.9rem;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 0.82rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.18s, color 0.18s;
+  }
+  .btn:hover { border-color: var(--red); color: var(--red); }
+</style>
+</head>
+<body>
+
+<span class="slide-num" id="slideNum">01 / 10</span>
+
+<div class="deck">
+
+  <!-- 01 · Title -->
+  <section class="slide center active">
+    <div class="tag">SICP — Chapter 1</div>
+    <h1>Building Abstractions<br>with Procedures</h1>
+    <h3>Key takeaways from the first chapter</h3>
+    <blockquote style="max-width:50ch; margin: 2em auto 0;">
+      <p>The acts of the mind, wherein it exerts its power over simple ideas,<br>are chiefly these three: combining, abstracting, and relating.</p>
+      <cite>John Locke, 1690 — epigraph to Chapter 1</cite>
+    </blockquote>
+  </section>
+
+  <!-- 02 · Not about syntax -->
+  <section class="slide">
+    <div class="tag">01 — A Way of Thinking</div>
+    <h2>This chapter is not about<br>learning a programming language.</h2>
+    <p>It is about learning a <em>way of thinking</em>.</p>
+    <p>The title itself is the lesson: <strong>Building Abstractions with Procedures.</strong></p>
+    <p>Not "writing code." Not "learning syntax."<br>But building abstractions.</p>
+    <hr>
+    <p style="color: var(--muted);">And this is one of the deepest ideas in computer science.</p>
+  </section>
+
+  <!-- 03 · Naming as abstraction -->
+  <section class="slide split">
+    <div class="col">
+      <div class="tag">02 — Naming Things</div>
+      <h2>Abstraction as a tool<br>for managing complexity</h2>
+      <p>We begin with extremely simple things — numbers, arithmetic, procedure definitions. But something important is already happening:</p>
+      <p>We are taking a process and <em>giving it a name</em>.</p>
+      <p>Once something has a name, it becomes:</p>
+      <ul>
+        <li>reusable</li>
+        <li>composable</li>
+        <li>discussable</li>
+        <li>mentally compressible</li>
+      </ul>
+      <p style="margin-top:0.8em;">Without abstraction, systems become impossible to reason about.</p>
+    </div>
+    <div class="col">
+<pre>(<span class="kw">define</span> (square x)
+  (* x x))
+
+<span class="c">; At first this looks trivial.</span>
+<span class="c">; But we just gave a name to a process.</span>
+<span class="c">; Now it can be reused anywhere.</span>
+
+(<span class="kw">define</span> (sum-of-squares a b)
+  (+ (square a) (square b)))
+
+<span class="c">; And composed with other abstractions.</span>
+
+(<span class="kw">define</span> (hypotenuse a b)
+  (sqrt (sum-of-squares a b)))</pre>
+      <p style="margin-top:1.2em; font-size:0.88em; color:var(--muted);">Each layer hides the complexity of the one below it.</p>
+    </div>
+  </section>
+
+  <!-- 04 · Procedures over processes -->
+  <section class="slide">
+    <div class="tag">03 — Procedure vs. Process</div>
+    <h2>A procedure is an abstraction<br>over a process.</h2>
+    <p>Computation becomes the evaluation of symbolic expressions. This shifts programming much closer to mathematics and logic than to machinery.</p>
+    <p>The computer becomes almost secondary. The real object of study is <em>process</em>.</p>
+    <hr>
+    <p>Two procedures may compute the same mathematical function while generating completely different computational processes — one growing, one flat.</p>
+    <ul style="margin-top:0.5em;">
+      <li><strong>Recursive process</strong> — growing memory, deferred operations, increasing complexity.</li>
+      <li><strong>Iterative process</strong> — fixed state, constant memory, stable resource usage.</li>
+    </ul>
+    <p style="margin-top:1em; color:var(--muted);">Computer science is not only about correctness. It is also about time, memory, and process structure.</p>
+  </section>
+
+  <!-- 05 · Recursion -->
+  <section class="slide split">
+    <div class="col">
+      <div class="tag">04 — Recursion</div>
+      <h2>Finite rules.<br>Arbitrarily complex behavior.</h2>
+      <p>Recursion allows a problem to be expressed in terms of smaller versions of itself.</p>
+      <p>This idea appears everywhere: mathematics, fractals, divide-and-conquer algorithms, even human reasoning.</p>
+      <p>What makes it powerful is the gap between the <em>simplicity of the rule</em> and the <em>richness of what it generates</em>.</p>
+    </div>
+    <div class="col">
+<pre>(<span class="kw">define</span> (factorial n)
+  (<span class="kw">if</span> (= n 1)
+      1
+      (* n (factorial (- n 1)))))
+
+<span class="c">; Trace for (factorial 4):</span>
+(factorial 4)
+(* 4 (factorial 3))
+(* 4 (* 3 (factorial 2)))
+(* 4 (* 3 (* 2 (factorial 1))))
+(* 4 (* 3 (* 2 1)))
+(* 4 (* 3 2))
+(* 4 6)
+24
+
+<span class="c">; The process expands, then contracts.</span></pre>
+    </div>
+  </section>
+
+  <!-- 06 · Higher-order procedures -->
+  <section class="slide split">
+    <div class="col">
+      <div class="tag">05 — Higher-order Procedures</div>
+      <h2>Abstraction<br>over abstraction</h2>
+      <p>This is the moment where SICP truly changes level.</p>
+      <p>Procedures are no longer just tools that compute numbers. <em>Procedures themselves become manipulable objects.</em></p>
+      <p>A procedure can receive procedures as arguments, return procedures, and describe computational patterns abstractly.</p>
+      <p style="margin-top:0.6em;">The details become parameters: how to transform values, how to move through a sequence, when to stop.</p>
+      <p style="color:var(--muted); margin-top:0.4em;">Modern software systems are built exactly like this — layers of abstractions operating on other abstractions.</p>
+    </div>
+    <div class="col">
+<pre>(<span class="kw">define</span> (sum term a next b)
+  (<span class="kw">if</span> (> a b)
+      0
+      (+ (term a)
+         (sum term (next a) next b))))
+
+<span class="c">; This procedure is not tied to one
+; specific computation.
+;
+; It abstracts the pattern of summation.</span>
+
+(<span class="kw">define</span> (sum-cubes a b)
+  (sum cube a inc b))
+
+(<span class="kw">define</span> (pi-sum a b)
+  (sum (<span class="kw">lambda</span> (x) (/ 1.0 (* x (+ x 2))))
+       a
+       (<span class="kw">lambda</span> (x) (+ x 4))
+       b))</pre>
+    </div>
+  </section>
+
+  <!-- 07 · Asymptotic thinking -->
+  <section class="slide">
+    <div class="tag">06 — Asymptotic Thinking</div>
+    <h2>Small structural differences.<br>Enormous consequences at scale.</h2>
+    <p>SICP repeatedly shows that the shape of a process — not just its correctness — is what matters when inputs grow large.</p>
+    <ul style="margin-top:0.6em;">
+      <li><strong>Linear growth</strong> — proportional to input size</li>
+      <li><strong>Logarithmic growth</strong> — barely grows at all</li>
+      <li><strong>Exponential growth</strong> — quickly becomes impossible</li>
+    </ul>
+    <p style="margin-top:1em;">At small scale, many approaches appear equivalent. At large scale, <em>structure dominates everything</em>.</p>
+    <hr>
+    <p style="color:var(--muted);">This principle extends far beyond programming — to organizations, infrastructure, learning systems, habits, and training.</p>
+  </section>
+
+  <!-- 08 · Programming as discipline -->
+  <section class="slide center">
+    <div class="tag">07 — Programming as Intellectual Discipline</div>
+    <h2>Not "coding."<br>Symbolic reasoning.</h2>
+    <p>SICP treats programming as:</p>
+    <ul style="text-align:left; margin: 1.2em auto; max-width:46ch;">
+      <li>symbolic reasoning</li>
+      <li>abstraction design</li>
+      <li>process engineering</li>
+      <li>complexity management</li>
+    </ul>
+    <p>The computer is a <em>medium for thought</em>.</p>
+    <p style="color:var(--muted);">This is why the book still feels modern decades later — it teaches ideas deeper than any specific technology stack.</p>
+  </section>
+
+  <!-- 09 · The biggest takeaway -->
+  <section class="slide center">
+    <div class="tag">08 — The Biggest Takeaway</div>
+    <div class="accent-word">∞</div>
+    <h2>The true power of computer science<br>does not come from hardware.</h2>
+    <blockquote style="max-width:48ch; margin: 1.8em auto 0; text-align:left;">
+      <p>Hardware scales computation.<br>Abstraction scales cognition.</p>
+    </blockquote>
+    <p style="margin-top:1.4em; color:var(--muted);">And maybe that is what programming fundamentally is — a technology for thought.</p>
+  </section>
+
+  <!-- 10 · Summary -->
+  <section class="slide center">
+    <div class="tag">Summary</div>
+    <h2>Six ideas from Chapter 1</h2>
+    <ul style="text-align:left; max-width:58ch; margin: 1.5em auto 0;">
+      <li><strong>Abstraction</strong> — naming things makes them reusable, composable, and mentally compressible.</li>
+      <li><strong>Procedures over processes</strong> — a procedure is a pattern; a process is what evolves.</li>
+      <li><strong>Recursive vs. iterative</strong> — same result, completely different shape and cost.</li>
+      <li><strong>Recursion</strong> — finite rules generating arbitrarily complex behavior.</li>
+      <li><strong>Higher-order procedures</strong> — abstraction over abstraction; the deepest tool.</li>
+      <li><strong>Asymptotic thinking</strong> — at scale, structure dominates everything.</li>
+    </ul>
+  </section>
+
+</div><!-- /deck -->
+
+<nav>
+  <span class="progress" id="progress">1 / 10</span>
+  <button class="btn" id="prevBtn" aria-label="Previous">&#8592;</button>
+  <button class="btn" id="nextBtn" aria-label="Next">&#8594;</button>
+</nav>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total  = slides.length;
+  let cur = 0;
+
+  function go(n) {
+    slides[cur].classList.remove('active');
+    cur = ((n % total) + total) % total;
+    slides[cur].classList.add('active');
+    document.getElementById('progress').textContent = (cur + 1) + ' / ' + total;
+    document.getElementById('slideNum').textContent =
+      String(cur + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', () => go(cur - 1));
+  document.getElementById('nextBtn').addEventListener('click', () => go(cur + 1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(cur + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                     go(cur - 1);
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End')  go(total - 1);
+  });
+</script>
+</body>
+</html>
